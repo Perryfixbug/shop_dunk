@@ -10,6 +10,8 @@
 
 **Server:** Node, Express
 
+**Database:** MongoDB
+
 
 ## Installation
 
