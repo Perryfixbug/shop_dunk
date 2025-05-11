@@ -7,9 +7,9 @@ const adminProductRoute = require('./admin/product.admin.route');
 const adminBillRoute = require('./admin/bill.admin.route');
 const adminUserRoute = require('./admin/user.admin.route');
 const adminStatsRoute = require('./admin/stats.route');
+const imageRoute = require('./image.route')
 
 module.exports = (app)=>{
-    
     app
         .use('/api/auth', authRoue)
         .use('/api/products', productRoute)
@@ -20,5 +20,6 @@ module.exports = (app)=>{
         .use('/api/admin/bills', adminBillRoute)
         .use('/api/admin/users', adminUserRoute)
         .use('/api/admin/stats', adminStatsRoute)
+        .use('/api/image', imageRoute)  
 }   
 

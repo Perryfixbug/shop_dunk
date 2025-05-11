@@ -1,0 +1,8 @@
+# Ko push .env
+.env
+
+# Ko push temp lên
+temp/
+
+# Ko push node_modules
+node_modules/

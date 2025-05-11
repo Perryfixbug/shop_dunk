@@ -23,6 +23,7 @@ import { Switch } from "@/components/ui/switch"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { formatCurrency } from "@/lib/utils"
+import MultiUploadForm from '@/components/upload-form'
 // import { products as mockProducts } from "@/lib/products"
 import { Textarea } from "@/components/ui/textarea"
 import { deleteAPI, getAPI, postAPI, putAPI } from "@/lib/api"
@@ -59,6 +60,8 @@ export default function ProductsPage() {
   const [sortField, setSortField] = useState("name")
   const [sortDirection, setSortDirection] = useState("asc")
   const [newImageUrl, setNewImageUrl] = useState("")
+  // Thêm useState cho ảnh tạm thời
+  const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null)
   const token = getCookie("token")
 
   // Hiển thị thông báo
@@ -167,27 +170,65 @@ export default function ProductsPage() {
     }
   }
 
-  // Handle adding a new image URL
-  const handleAddImage = () => {
-    if (!currentProduct) return
+  // // Handle removing an image
+  const handleRemoveImage = async (index: number) => {
+  if (!currentProduct) return;
 
-    if (newImageUrl && newImageUrl.trim()) {
-      setCurrentProduct((prev: any) => ({
-        ...prev,
-        images: [...(prev.images || []), newImageUrl.trim()],
-      }))
-      setNewImageUrl("") // Clear the input after adding
-    }
-  }
+  const imageUrl = currentProduct.images[index];
 
-  // Handle removing an image
-  const handleRemoveImage = (index: number) => {
-    if (!currentProduct) return
+  // Lấy public_id từ URL
+  const parts = imageUrl.split('/');
+  const public_id_with_ext = parts.slice(-2).join('/'); // folder/filename.jpg
+  const public_id = public_id_with_ext.replace(/\.[^/.]+$/, ""); // remove .jpg/.png
 
+  try {
+    await fetch(`http://localhost:4001/api/image/delete`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        productId: currentProduct._id,
+        imageUrl, // cần gửi để backend xóa trong MongoDB
+      }),
+    });
+
+    // Xoá khỏi state
     setCurrentProduct((prev: any) => ({
       ...prev,
-      images: prev.images.filter((_: string, i: number) => i !== index),
-    }))
+      images: prev.images.filter((_: any, i: number) => i !== index),
+    }));
+  } catch (error) {
+    console.error("Lỗi xoá ảnh:", error);
+  }
+};
+
+
+
+  // Hàm upload file và thêm ảnh vào currentProduct
+  const handleAddImage = async () => {
+    if (!selectedFiles || !currentProduct) return
+
+    const formData = new FormData()
+    for (let i = 0; i < selectedFiles.length; i++) {
+      formData.append('images', selectedFiles[i])
+    }
+    formData.append('productId', currentProduct._id)
+
+    try {
+      const res = await fetch('http://localhost:4001/api/image/upload', {
+        method: 'POST',
+        body: formData,
+      })
+      const data = await res.json()
+      const uploadedUrls = data.urls
+
+      setCurrentProduct((prev: any) => ({
+        ...prev,
+        images: [...(prev.images || []), ...uploadedUrls],
+      }))
+      setSelectedFiles(null)
+    } catch (error) {
+      console.error('Upload failed:', error)
+    }
   }
 
   // Xử lý lưu sản phẩm (thêm mới hoặc cập nhật)
@@ -529,17 +570,22 @@ export default function ProductsPage() {
                 <Label>Hình ảnh sản phẩm</Label>
                 <div className="flex gap-2">
                   <Input
-                    placeholder="Nhập URL hình ảnh"
-                    value={newImageUrl}
-                    onChange={(e) => setNewImageUrl(e.target.value)}
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={(e) => {
+                      setSelectedFiles(e.target.files)
+                    }}
                   />
 
                   <Button 
                     type="button" variant="outline" size="sm" onClick={handleAddImage}
-                    disabled={!newImageUrl.trim()}
+                    disabled={!selectedFiles}
                   >
                     Thêm ảnh
                   </Button>
+                  {/* Upload bằng file */}
+                  {/* <MultiUploadForm /> */}
                 </div>
 
                 {currentProduct?.images && currentProduct.images.length > 0 ? (
